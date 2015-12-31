@@ -10,7 +10,6 @@ import com.typesafe.config.ConfigFactory
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Duration
 
-
 object Node extends App {
   // Override the configuration of the port when specified as program argument
   val port = if (args.isEmpty) "0" else args(0)
@@ -22,12 +21,18 @@ object Node extends App {
   system.actorOf(Props[Node], name = "indexBackend")
 }
 
+object DurationImplicits {
+  implicit class IntToDuration(a: Int) {
+    def toSecs = {
+      Duration.create(a, TimeUnit.SECONDS)
+    }
+  }
+}
+
+
 class Node extends Actor {
-
   val cluster = Cluster(context.system)
-
   val peersBuffer = ListBuffer[ActorRef]()
-
   val nodeData = new NodeData()
 
   // subscribe to cluster changes, MemberUp
@@ -47,11 +52,12 @@ class Node extends Actor {
 
   var lastTimeStamp = 0l
 
+  import DurationImplicits._
+
   import scala.concurrent.ExecutionContext.Implicits._
 
-  context.system.scheduler.schedule(Duration.create(2, TimeUnit.SECONDS), Duration.create(2, TimeUnit.SECONDS), self, IsMasterElected)
-
-  context.system.scheduler.schedule(Duration.create(4, TimeUnit.SECONDS), Duration.create(10, TimeUnit.SECONDS), self, ElectionOver)
+  context.system.scheduler.schedule(2.toSecs, 2.toSecs, self, IsMasterElected)
+  context.system.scheduler.schedule(4.toSecs, 10.toSecs, self, ElectionOver)
 
   /**
     * this stage node collects its peers before it can conduct election
@@ -59,6 +65,8 @@ class Node extends Actor {
     */
   def idle: Receive = {
     case MemberUp(m) => register(m)
+
+    case UnreachableMember(x) =>
 
     case IndexerNodeUp =>
       if (masterElected) {
@@ -87,6 +95,7 @@ class Node extends Actor {
   }
 
   def candidate: Receive = {
+
     case IndexerNodeUp =>
       if (masterElected) {
         sender() ! PreElectedMaster(electedMaster)
@@ -97,14 +106,17 @@ class Node extends Actor {
     case election: Election =>
       println("Received vote from peer")
       nodeData.addVote(sender(), election.ts)
+
     case ElectionOver =>
-      println(s"schduler kicked in to announce election over master ${masterElected}")
+      println(s"schduler kicked in to announce election over master $masterElected")
       if (!masterElected) nodeData.findOldest ! LeaderElected
+
     case LeaderElected =>
       println("Oh my god ... Iam elected as leader ")
       masterElected = true
       println("Sending the new leader")
       peersBuffer.foreach(ar => ar ! NewLeader)
+
     case NewLeader =>
       println("Welcome new leader")
       masterElected = true
@@ -131,11 +143,12 @@ class Node extends Actor {
     if (member.hasRole("indexer"))
       context.actorSelection(RootActorPath(member.address) / "user" / "indexBackend") ! IndexerNodeUp
 
-
 }
 
+/**
+  * Class to hold election data for a node
+  */
 class NodeData {
-
   private val votes = scala.collection.mutable.Map[Long, ActorRef]()
 
   def addVote(actorRef: ActorRef, ts: Long) = votes.+=(ts -> actorRef)

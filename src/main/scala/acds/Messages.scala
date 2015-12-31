@@ -2,16 +2,6 @@ package acds
 
 import akka.actor.ActorRef
 
-case object MasterEnd
-
-case object Tick
-
-case object Ack
-
-case object WorkerReady
-
-case object AssignWork
-
 case object IndexerNodeUp
 
 case object IndexerSubcription
@@ -22,7 +12,7 @@ case class IndexReq(doc: String)
 
 case object IsMasterElected
 
-case class Election(ts:Long)
+case class Election(ts: Long)
 
 case object ElectionOver
 

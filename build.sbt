@@ -1,4 +1,3 @@
-
 val akkaVersion = "2.4.0"
 
 val project = Project(
