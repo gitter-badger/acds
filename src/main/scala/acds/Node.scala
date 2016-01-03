@@ -1,14 +1,13 @@
 package acds
 
-import java.util.concurrent.TimeUnit
-
 import akka.actor._
 import akka.cluster.ClusterEvent.{MemberUp, UnreachableMember}
 import akka.cluster.{Cluster, Member}
+import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.Duration
+import scala.concurrent.Await
 
 object Node extends App {
   // Override the configuration of the port when specified as program argument
@@ -46,11 +45,12 @@ class Node extends Actor {
 
   context.system.scheduler.schedule(2.toSecs, 2.toSecs, self, IsMasterElected)
   context.system.scheduler.schedule(4.toSecs, 10.toSecs, self, ElectionOver)
+  context.system.scheduler.schedule(4.toSecs, 2.toSecs, self, CheckMasterHB)
 
   /**
-   * this stage node collects its peers before it can conduct election
-   * when the node
-   */
+    * this stage node collects its peers before it can conduct election
+    * when the node
+    */
   def idle: Receive = {
     case MemberUp(m) => register(m)
 
@@ -79,7 +79,19 @@ class Node extends Actor {
           // .filter(ar => ar.path != self.path)
           .foreach(ar => ar ! Election(lastTimeStamp))
       } else context.become(candidate)
-    //
+
+    case DataRequest => println("back to Idle state")
+
+
+    case CheckMasterHB =>
+      try {
+        Await.result(electedMaster ? HBMaster, 2.toSecs)
+      } catch {
+        case e: Exception =>
+        // this means master has not responsed withtin 2 secs hence master failure
+        println("master failed time for the node to become candidate and contest election")
+      } finally {}
+
   }
 
   def candidate: Receive = {
@@ -115,10 +127,16 @@ class Node extends Actor {
         self ! "First Msg"
       }
       nodeData.invalidateVotes()
+      context.unbecome()
+      //
+      self ! DataRequest
   }
 
   def leader: Receive = {
     case s: String => println(s"After elected as a leader $s")
+
+    case HBMaster => sender() ! MasterHBAck
+
     case IndexerNodeUp =>
       if (masterElected) {
         sender() ! PreElectedMaster(electedMaster)
@@ -134,8 +152,8 @@ class Node extends Actor {
 }
 
 /**
- * Class to hold election data for a node
- */
+  * Class to hold election data for a node
+  */
 class NodeData {
   private val votes = scala.collection.mutable.Map[Long, ActorRef]()
 
