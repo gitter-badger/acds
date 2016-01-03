@@ -19,6 +19,7 @@ project/plugins/project/
 .idea/
 .ensime
 .ensime_cache/
+.classpath_nb
 
 .#*.scala
 

@@ -20,18 +20,14 @@ object Node extends App {
   system.actorOf(Props[Node], name = "indexBackend")
 }
 
-object DurationImplicits {
-  implicit class IntToDuration(a: Int) {
-    def toSecs = {
-      Duration.create(a, TimeUnit.SECONDS)
-    }
-  }
-}
-
 class Node extends Actor {
+
   val cluster = Cluster(context.system)
   val peersBuffer = ListBuffer[ActorRef]()
   val nodeData = new NodeData()
+  var masterElected = false
+  var electedMaster: ActorRef = null
+  var lastTimeStamp = 0l
 
   // subscribe to cluster changes, MemberUp
   // re-subscribe when restart
@@ -43,12 +39,6 @@ class Node extends Actor {
   override def postStop(): Unit = cluster.unsubscribe(self)
 
   def receive = idle
-
-  var masterElected = false
-
-  var electedMaster: ActorRef = null
-  
-  var lastTimeStamp = 0l
 
   import DurationImplicits._
 
