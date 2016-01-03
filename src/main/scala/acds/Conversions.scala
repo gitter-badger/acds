@@ -7,6 +7,7 @@ object Conversions {
 object Convertors {
 
   implicit class IntToString(a: Int) {
+    println()
     def times(x: Int = 1) = a * x
   }
 

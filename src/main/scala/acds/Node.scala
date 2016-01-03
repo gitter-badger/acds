@@ -16,7 +16,6 @@ object Node extends App {
   val config = ConfigFactory.parseString(s"akka.remote.netty.tcp.port=$port").
     withFallback(ConfigFactory.parseString("akka.cluster.roles = [indexer]")).
     withFallback(ConfigFactory.load())
-
   val system = ActorSystem("ClusterSystem", config)
   system.actorOf(Props[Node], name = "indexBackend")
 }
@@ -28,7 +27,6 @@ object DurationImplicits {
     }
   }
 }
-
 
 class Node extends Actor {
   val cluster = Cluster(context.system)
@@ -60,9 +58,9 @@ class Node extends Actor {
   context.system.scheduler.schedule(4.toSecs, 10.toSecs, self, ElectionOver)
 
   /**
-    * this stage node collects its peers before it can conduct election
-    * when the node
-    */
+   * this stage node collects its peers before it can conduct election
+   * when the node
+   */
   def idle: Receive = {
     case MemberUp(m) => register(m)
 
@@ -146,8 +144,8 @@ class Node extends Actor {
 }
 
 /**
-  * Class to hold election data for a node
-  */
+ * Class to hold election data for a node
+ */
 class NodeData {
   private val votes = scala.collection.mutable.Map[Long, ActorRef]()
 
