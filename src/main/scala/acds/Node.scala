@@ -47,7 +47,7 @@ class Node extends Actor {
   var masterElected = false
 
   var electedMaster: ActorRef = null
-
+  
   var lastTimeStamp = 0l
 
   import DurationImplicits._

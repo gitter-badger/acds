@@ -18,5 +18,8 @@ project/plugins/project/
 .worksheet
 .idea/
 .ensime
+.ensime_cache/
+
+.#*.scala
 
 # Created by .ignore support plugin (hsz.mobi)
