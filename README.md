@@ -52,3 +52,5 @@ Now that master is elected and oher nodes acting in Idle state. Its also possibl
 **More steps**
 
 So far I have implmented only the alorithm and its not complete with a implementation. 
+
+[![Join the chat at https://gitter.im/prassee/acds](https://badges.gitter.im/prassee/acds.svg)](https://gitter.im/prassee/acds?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
